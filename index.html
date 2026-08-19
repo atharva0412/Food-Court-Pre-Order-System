@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Northgate Canteen Express | Food Court Pre-Order System</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍱</text></svg>" />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            swiggyOrange: {
+              500: '#fc8019',
+              600: '#e66f07',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons & Canvas Confetti CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Minimalist Light Theme Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-orange-500 selection:text-white">
+
+  <!-- ================================================================= -->
+  <!-- TOP NAVIGATION HEADER & ROLE SWITCHER -->
+  <!-- ================================================================= -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="toggleActivePage('student')">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20 text-white">
+          <i data-lucide="utensils-crossed" class="w-5 h-5 stroke-[2.5]"></i>
+        </div>
+        <div>
+          <h1 class="font-heading font-black text-lg sm:text-xl text-slate-900 tracking-tight leading-none flex items-center gap-2">
+            NORTHGATE <span class="text-emerald-700 text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">100% VEG CANTEEN</span>
+          </h1>
+          <p class="text-[11px] text-slate-500 font-medium mt-0.5">Pre-Order & Express Pickup</p>
+        </div>
+      </div>
+
+      <!-- Live Rush Hour Ticker -->
+      <div class="hidden md:flex items-center gap-2 bg-orange-50 border border-orange-200 px-3.5 py-1.5 rounded-full text-xs text-orange-700 font-semibold animate-pulse-slow">
+        <span class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
+        <span>🔥 Peak Lunch Break &bull; Est. Prep: 12-15 mins</span>
+      </div>
+
+      <!-- Right Controls: Role Switcher & Cart Trigger -->
+      <div class="flex items-center gap-3">
+        <!-- Role Switcher Pills -->
+        <div class="bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center text-xs font-semibold" role="tablist" aria-label="Portal Navigation Roles">
+          <button id="nav-btn-student" onclick="toggleActivePage('student')" role="tab" aria-selected="true" aria-controls="page-student" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all bg-orange-500 text-white shadow-md font-extrabold">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+            <span>Student Portal</span>
+          </button>
+          <button id="nav-btn-staff" onclick="toggleActivePage('staff')" role="tab" aria-selected="false" aria-controls="page-staff" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-medium">
+            <i data-lucide="lock" class="w-3.5 h-3.5 text-orange-500"></i>
+            <span>Kitchen (KDS)</span>
+            <span id="staff-pending-badge" class="hidden ml-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold">0</span>
+          </button>
+        </div>
+
+        <!-- Staff Logout Button (Visible when staff is authenticated) -->
+        <button id="staff-logout-nav-btn" onclick="logoutKitchenStaff()" aria-label="Logout Kitchen Staff" class="hidden items-center gap-1.5 bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 px-3 py-1.5 rounded-xl text-xs font-bold transition-all">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+          <span>Logout Staff</span>
+        </button>
+
+        <!-- Cart Drawer Button (Student Mode) -->
+        <button id="cart-trigger-btn" onclick="openCartDrawer()" aria-label="View Shopping Cart" class="relative flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl shadow-md shadow-emerald-600/20 text-xs font-extrabold transition-all active:scale-95">
+          <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Cart</span>
+          <span id="cart-badge-count" class="bg-emerald-800 text-emerald-100 px-1.5 py-0.5 rounded-md text-[11px] font-extrabold">0</span>
+          <span id="cart-badge-total" class="text-xs font-semibold ml-0.5">₹0</span>
+        </button>
+
+        <!-- Active Tracker Quick Pill -->
+        <button id="active-tracker-pill" onclick="scrollToOrderTrackerSection()" aria-label="Track Active Order" class="hidden items-center gap-1.5 bg-sky-50 border border-sky-200 text-sky-700 px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-sky-100 transition-all">
+          <i data-lucide="clock" class="w-3.5 h-3.5 animate-spin text-sky-600"></i>
+          <span>Track Order #<span id="active-order-id-short"></span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER WRAPPER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6">
+
+    <!-- ================================================================= -->
+    <!-- PAGE 1: STUDENT / CUSTOMER PORTAL -->
+    <!-- ================================================================= -->
+    <div id="page-student" role="tabpanel" aria-labelledby="nav-btn-student" class="space-y-8">
+      
+      <!-- HERO ANNOUNCEMENT BANNER -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-orange-50 via-amber-50/60 to-orange-50 border border-orange-200/80 p-6 sm:p-8 shadow-sm">
+        <div class="absolute -top-24 -right-24 w-80 h-80 bg-orange-200/30 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div class="max-w-2xl space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold uppercase tracking-wider">
+              <span>🌱 100% Pure Veg Canteen Self-Service</span>
+            </div>
+            <h2 class="font-heading text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              Pre-Order Pure Veg Canteen Meals & Collect Fresh in 12 Mins!
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Browse active canteen outlets, customize your spice level and portions, select a convenient pickup time slot, and collect instantly at Counter #2.
+            </p>
+          </div>
+          
+          <div class="flex items-center gap-4 bg-white/90 backdrop-blur border border-slate-200 p-4 rounded-2xl shrink-0 shadow-sm">
+            <div class="text-center px-3 border-r border-slate-200">
+              <p class="text-[11px] text-slate-500 font-medium">Open Outlets</p>
+              <p class="text-lg font-bold text-emerald-600">4 Active</p>
+            </div>
+            <div class="text-center px-3 border-r border-slate-200">
+              <p class="text-[11px] text-slate-500 font-medium">Avg Prep</p>
+              <p class="text-lg font-bold text-orange-600">12 Mins</p>
+            </div>
+            <div class="text-center px-3">
+              <p class="text-[11px] text-slate-500 font-medium">Rush Level</p>
+              <p class="text-lg font-bold text-rose-600">Moderate</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVE LIVE ORDER TRACKER STEPPER CONTAINER -->
+      <section id="student-order-tracker-container" aria-label="Live Order Tracking Progress" class="hidden">
+        <!-- Rendered dynamically by student.js -->
+      </section>
+
+      <!-- SEARCH, FILTERS & CATEGORIES BAR -->
+      <div class="space-y-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <!-- Search Input -->
+          <div class="relative w-full sm:w-80">
+            <label for="search-input" class="sr-only">Search Canteen Menu</label>
+            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="search-input" oninput="onSearchInputChange()" placeholder="Search Thali, Coffee, Dosa, Burger..." 
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500">
+          </div>
+
+          <!-- Dietary Tag Toggles (STRICTLY PURE VEG & VEGAN) -->
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto" aria-label="Dietary Filters">
+            <button onclick="toggleDietaryFilterTag('Veg')" id="diet-tag-Veg" class="diet-tag-btn px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-700 font-semibold hover:border-slate-300 flex items-center gap-1.5 transition-all">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 100% Pure Veg
+            </button>
+            <button onclick="toggleDietaryFilterTag('Vegan')" id="diet-tag-Vegan" class="diet-tag-btn px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-700 font-semibold hover:border-slate-300 flex items-center gap-1.5 transition-all">
+              🌱 Vegan
+            </button>
+            <button onclick="toggleDietaryFilterTag('Gluten-Free')" id="diet-tag-Gluten-Free" class="diet-tag-btn px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-700 font-semibold hover:border-slate-300 flex items-center gap-1.5 transition-all">
+              🌾 Gluten-Free
+            </button>
+          </div>
+
+          <!-- Sorting Select -->
+          <div class="flex items-center gap-2 shrink-0">
+            <label for="sort-select" class="text-xs text-slate-500 font-medium">Sort:</label>
+            <select id="sort-select" onchange="renderFoodMenuGrid()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-orange-500">
+              <option value="popular">Popularity ⭐</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="prep-time">Fastest Prep Time</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Category Pills -->
+        <div id="category-pills" role="tablist" aria-label="Menu Categories" class="flex items-center gap-2 overflow-x-auto pb-1 pt-2 no-scrollbar border-t border-slate-100">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- FOOD MENU CARDS GRID -->
+      <div id="menu-grid" aria-label="Canteen Food Catalog Grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Rendered dynamically by student.js -->
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- PAGE 2: FOOD COURT STAFF / KITCHEN DISPLAY SYSTEM (KDS) -->
+    <!-- ================================================================= -->
+    <div id="page-staff" role="tabpanel" aria-labelledby="nav-btn-staff" class="hidden space-y-8">
+      
+      <!-- KDS SUMMARY METRICS BAR -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+          <p class="text-xs text-slate-500 font-medium">Total Orders Today</p>
+          <h3 id="kds-stat-total" class="text-2xl font-black text-slate-900 font-heading mt-1">0</h3>
+        </div>
+        <div class="bg-white border border-orange-200 p-4 rounded-2xl shadow-sm">
+          <p class="text-xs text-orange-600 font-medium">Pending Acceptance</p>
+          <h3 id="kds-stat-pending" class="text-2xl font-black text-orange-600 font-heading mt-1">0</h3>
+        </div>
+        <div class="bg-white border border-sky-200 p-4 rounded-2xl shadow-sm">
+          <p class="text-xs text-sky-600 font-medium">In Preparation</p>
+          <h3 id="kds-stat-preparing" class="text-2xl font-black text-sky-600 font-heading mt-1">0</h3>
+        </div>
+        <div class="bg-white border border-emerald-200 p-4 rounded-2xl shadow-sm">
+          <p class="text-xs text-emerald-600 font-medium">Ready for Pickup</p>
+          <h3 id="kds-stat-ready" class="text-2xl font-black text-emerald-600 font-heading mt-1">0</h3>
+        </div>
+        <div class="bg-white border border-slate-200 p-4 rounded-2xl col-span-2 sm:col-span-1 shadow-sm">
+          <p class="text-xs text-slate-500 font-medium">Revenue Generated</p>
+          <h3 id="kds-stat-revenue" class="text-2xl font-black text-emerald-600 font-heading mt-1">₹0</h3>
+        </div>
+      </div>
+
+      <!-- KDS CONTROL BAR & STATUS TABS -->
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0" role="tablist" aria-label="Kitchen Order Queues">
+          <button onclick="selectStaffTabFilter('All')" id="kds-tab-All" class="kds-tab-btn px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white transition-all shadow-sm">
+            All Orders
+          </button>
+          <button onclick="selectStaffTabFilter('Placed')" id="kds-tab-Placed" class="kds-tab-btn px-4 py-2 rounded-xl text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 transition-all flex items-center gap-1.5">
+            Pending <span id="kds-cnt-placed" class="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px]">0</span>
+          </button>
+          <button onclick="selectStaffTabFilter('Preparing')" id="kds-tab-Preparing" class="kds-tab-btn px-4 py-2 rounded-xl text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 transition-all flex items-center gap-1.5">
+            In Prep <span id="kds-cnt-preparing" class="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[10px]">0</span>
+          </button>
+          <button onclick="selectStaffTabFilter('Ready')" id="kds-tab-Ready" class="kds-tab-btn px-4 py-2 rounded-xl text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 transition-all flex items-center gap-1.5">
+            Ready <span id="kds-cnt-ready" class="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px]">0</span>
+          </button>
+          <button onclick="selectStaffTabFilter('Completed')" id="kds-tab-Completed" class="kds-tab-btn px-4 py-2 rounded-xl text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200 transition-all">
+            Completed
+          </button>
+        </div>
+
+        <button onclick="openInventoryModal()" class="w-full md:w-auto flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold transition-all">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-orange-600"></i>
+          <span>Inventory & Stock Control</span>
+        </button>
+      </div>
+
+      <!-- INCOMING ORDER QUEUE GRID -->
+      <div id="kds-orders-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Rendered dynamically by staff.js -->
+      </div>
+    </div>
+  </main>
+
+  <!-- ================================================================= -->
+  <!-- KITCHEN STAFF AUTHENTICATION MODAL -->
+  <!-- Credentials: ID: kithen@ngce | Password: canteenexpress -->
+  <!-- ================================================================= -->
+  <div id="staff-login-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="staff-modal-title">
+    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl space-y-4">
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-md">
+            <i data-lucide="chef-hat" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 id="staff-modal-title" class="font-heading text-base font-extrabold text-slate-900">Kitchen Staff Authentication</h3>
+            <p class="text-[11px] text-slate-500">Restricted Access for Canteen Staff Only</p>
+          </div>
+        </div>
+        <button onclick="closeStaffLoginModal()" aria-label="Close Staff Login Modal" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="staff-login-alert" class="hidden mx-5 bg-rose-50 border border-rose-200 p-3 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
+        <span id="staff-login-alert-msg">Invalid Credentials</span>
+      </div>
+
+      <form onsubmit="processStaffLoginForm(event)" class="px-5 pb-5 space-y-4 text-xs">
+        <div>
+          <label for="staff-login-id" class="block font-bold text-slate-700 mb-1">Kitchen Staff ID *</label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="staff-login-id" required placeholder="kithen@ngce" 
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-800 focus:outline-none focus:border-orange-500 font-medium">
+          </div>
+        </div>
+
+        <div>
+          <label for="staff-login-pass" class="block font-bold text-slate-700 mb-1">Kitchen Staff Password *</label>
+          <div class="relative">
+            <i data-lucide="key" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="password" id="staff-login-pass" required placeholder="canteenexpress" 
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-slate-800 focus:outline-none focus:border-orange-500 font-medium">
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" class="w-full btn btn-primary py-3 text-xs shadow-md shadow-orange-500/20">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+            <span>Authenticate & Launch KDS</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- ITEM CUSTOMIZATION MODAL (STUDENT) -->
+  <!-- ================================================================= -->
+  <div id="customization-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
+    <div class="bg-white border border-slate-200 rounded-3xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="relative h-48 shrink-0">
+        <img id="custom-modal-img" src="" alt="Food Item" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
+        <button onclick="closeItemCustomizationModal()" aria-label="Close Customization Modal" class="absolute top-3 right-3 bg-white/80 hover:bg-white text-slate-700 p-2 rounded-full border border-slate-200 shadow-md">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+        <div class="absolute bottom-3 left-4 right-4">
+          <div class="flex items-center gap-2 text-xs text-orange-400 font-semibold mb-1" id="custom-modal-tags"></div>
+          <h3 id="custom-modal-title" class="text-xl font-black text-white font-heading">Item Title</h3>
+        </div>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-5 text-xs text-slate-700">
+        <p id="custom-modal-desc" class="text-slate-600 leading-relaxed"></p>
+
+        <div id="portion-section" class="space-y-2">
+          <label class="font-bold text-slate-800 uppercase tracking-wider text-[11px] block">Select Portion Size</label>
+          <div id="portion-options" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+        </div>
+
+        <div id="spice-section" class="space-y-2">
+          <label class="font-bold text-slate-800 uppercase tracking-wider text-[11px] block">Select Spice Level</label>
+          <div id="spice-options" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div id="addons-section" class="space-y-2">
+          <label class="font-bold text-slate-800 uppercase tracking-wider text-[11px] block">Optional Add-ons</label>
+          <div id="addons-options" class="space-y-2"></div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="special-instructions" class="font-bold text-slate-800 uppercase tracking-wider text-[11px] block">Special Instructions / Cooking Preferences</label>
+          <textarea id="special-instructions" placeholder="e.g., Less oil, extra green chutney..." 
+            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 text-xs placeholder-slate-400 focus:outline-none focus:border-orange-500 h-20 resize-none"></textarea>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-4">
+        <div>
+          <span class="text-xs text-slate-500 block font-medium">Total Item Price</span>
+          <span id="custom-modal-calculated-price" class="text-2xl font-black text-orange-600 font-heading">₹0</span>
+        </div>
+        <button id="add-custom-to-cart-btn" onclick="addCustomizedItemToCart()" class="flex-1 btn btn-primary text-xs py-3.5">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Add to Order</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- SLIDE-OVER CART DRAWER & CHECKOUT (STUDENT) -->
+  <!-- ================================================================= -->
+  <div id="cart-drawer" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeCartDrawer()"></div>
+    <div class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white border-l border-slate-200 flex flex-col shadow-2xl cart-drawer-panel">
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700">
+            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+          </div>
+          <h3 id="cart-drawer-title" class="font-heading text-lg font-bold text-slate-900">Your Pre-Order Cart</h3>
+        </div>
+        <button onclick="closeCartDrawer()" aria-label="Close Cart Drawer" class="text-slate-400 hover:text-slate-700 p-2 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="cart-stock-alert" class="hidden bg-rose-50 border-b border-rose-200 p-3 text-xs text-rose-700 flex items-start gap-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 shrink-0 mt-0.5"></i>
+        <div id="cart-stock-alert-msg" class="w-full"></div>
+      </div>
+
+      <div id="cart-items-container" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"></div>
+
+      <div id="cart-checkout-footer" class="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 space-y-4">
+        <div class="space-y-1.5 text-xs text-slate-600 border-b border-slate-200 pb-3">
+          <div class="flex justify-between">
+            <span>Items Subtotal</span>
+            <span id="cart-subtotal-val" class="font-semibold text-slate-800">₹0</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Campus GST Tax (5%)</span>
+            <span id="cart-tax-val" class="font-semibold text-slate-800">₹0</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Convenience & Service Fee</span>
+            <span class="font-semibold text-slate-800">₹5</span>
+          </div>
+          <div class="flex justify-between text-sm font-extrabold text-slate-900 pt-2 border-t border-slate-200">
+            <span class="font-heading">Final Payable Amount</span>
+            <span id="cart-total-val" class="text-orange-600 font-heading text-base font-black">₹0</span>
+          </div>
+        </div>
+
+        <form id="checkout-form" onsubmit="processOrderCheckoutForm(event)" class="space-y-3 text-xs">
+          <div>
+            <label for="cust-name" class="block font-semibold text-slate-700 mb-1">Student Full Name *</label>
+            <input type="text" id="cust-name" required placeholder="e.g. Rahul Sharma" 
+              class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:border-orange-500">
+          </div>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label for="cust-roll" class="block font-semibold text-slate-700 mb-1">Roll / ID No. *</label>
+              <input type="text" id="cust-roll" required placeholder="CS2024-045" 
+                class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:border-orange-500">
+            </div>
+            <div>
+              <label for="cust-phone" class="block font-semibold text-slate-700 mb-1">Phone (10-Digit) *</label>
+              <input type="tel" id="cust-phone" required pattern="[0-9]{10}" placeholder="9876543210" 
+                class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:border-orange-500">
+            </div>
+          </div>
+
+          <div>
+            <label for="cust-slot" class="block font-semibold text-slate-700 mb-1">Target Pickup Time Slot *</label>
+            <select id="cust-slot" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:border-orange-500">
+              <option value="Next available: 12:45 PM">⚡ Next available slot (~12:45 PM)</option>
+              <option value="1:15 PM Lunch Break">🍱 1:15 PM Lunch Break</option>
+              <option value="1:45 PM Break">☕ 1:45 PM Recess Break</option>
+              <option value="2:15 PM Post Class">🎓 2:15 PM After Class</option>
+            </select>
+          </div>
+
+          <button type="submit" id="place-order-btn" class="w-full btn btn-emerald text-xs py-3.5 shadow-md shadow-emerald-600/20">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            <span id="place-order-btn-text">Instant Place Order</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- INVENTORY & STOCK CONTROL MODAL (STAFF) -->
+  <!-- ================================================================= -->
+  <div id="inventory-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="inventory-modal-title">
+    <div class="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2">
+          <i data-lucide="sliders-horizontal" class="w-5 h-5 text-orange-600"></i>
+          <h3 id="inventory-modal-title" class="font-heading text-lg font-bold text-slate-900">Menu Stock & Availability Control</h3>
+        </div>
+        <button onclick="closeInventoryModal()" aria-label="Close Inventory Control Modal" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 border-b border-slate-200 bg-slate-50/50">
+        <label for="inventory-search" class="sr-only">Search Inventory Items</label>
+        <input type="text" id="inventory-search" oninput="renderInventoryManagementList()" placeholder="Search menu items..." 
+          class="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-orange-500">
+      </div>
+
+      <div id="inventory-items-container" class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- Page View Switcher Helper Script -->
+  <script>
+    function toggleActivePage(pageName, bypassAuthCheck = false) {
+      const pageStudent = document.getElementById('page-student');
+      const pageStaff = document.getElementById('page-staff');
+      const btnStudent = document.getElementById('nav-btn-student');
+      const btnStaff = document.getElementById('nav-btn-staff');
+
+      if (pageName === 'staff' && !bypassAuthCheck && !isStaffAuthenticated()) {
+        openStaffLoginModal();
+        return;
+      }
+
+      if (pageName === 'student') {
+        pageStudent.classList.remove('hidden');
+        pageStaff.classList.add('hidden');
+        btnStudent.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all bg-orange-500 text-white shadow-md font-extrabold";
+        btnStaff.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-medium";
+        if (window.refreshStudentPortalView) refreshStudentPortalView();
+      } else {
+        pageStudent.classList.add('hidden');
+        pageStaff.classList.remove('hidden');
+        btnStaff.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all bg-orange-500 text-white shadow-md font-extrabold";
+        btnStudent.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900 font-medium";
+        if (window.renderKitchenDisplaySystem) renderKitchenDisplaySystem();
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+  </script>
+
+  <!-- Page Logic JavaScript Scripts -->
+  <script src="student.js"></script>
+  <script src="staff.js"></script>
+</body>
+</html>
